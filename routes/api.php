@@ -28,6 +28,10 @@ Route::apiResource('usuarios', UsuarioController::class);
 Route::apiResource('destinos', DestinoController::class);
 // Rutas API para la gestión de Contextos (Nodo C) 
 Route::apiResource('contextos', ContextoController::class);
+// Ruta específica para obtener el contexto actual
+Route::get('contexto/actual', [ContextoController::class, 'obtenerContextoActual']);
+
+
 // Rutas API para la gestión de Eventos y Festividades (Nodo E)
 Route::apiResource('eventos', EventoFestividadController::class);
 

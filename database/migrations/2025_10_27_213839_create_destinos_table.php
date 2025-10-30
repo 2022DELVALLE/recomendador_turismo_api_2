@@ -30,7 +30,7 @@ return new class extends Migration
             $table->float('costo_promedio')->nullable();
             $table->float('tiempo_visita_promedio')->nullable();
             $table->text('etiquetas_tematicas')->nullable();
-            $table->string('temporada_alta', 50)->nullable();
+            $table->string('temporada_alta', 150)->nullable();
 
             $table->timestamps();
         });
