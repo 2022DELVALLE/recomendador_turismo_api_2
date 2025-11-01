@@ -17,4 +17,19 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-git config --global core.autocrlf true
+### Opción 3: Crear/actualizar `.gitattributes`
+
+Crea un archivo `.gitattributes` en la raíz del proyecto:
+```
+# .gitattributes
+* text=auto
+
+*.php text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+*.exe binary
+*.dll binary
+*.png binary
+*.jpg binary

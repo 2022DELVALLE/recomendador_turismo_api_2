@@ -19,6 +19,7 @@ class InteraccionUC extends Model
         'transporte_usado',
         'seguridad_percibida',
         'servicios_utilizados',
+        'peso_uc',
     ];
 
     protected $casts = [

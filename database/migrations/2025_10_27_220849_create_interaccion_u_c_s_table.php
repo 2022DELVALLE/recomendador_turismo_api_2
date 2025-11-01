@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('transporte_usado', 30)->nullable();
             $table->integer('seguridad_percibida')->nullable(); // Índice 1-10
             $table->boolean('servicios_utilizados'); // TRUE/FALSE
-
+            $table->float('peso_uc')->nullable();
             $table->timestamps();
 
             // Definición de Claves Foráneas
