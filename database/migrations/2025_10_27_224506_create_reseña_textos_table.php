@@ -25,7 +25,7 @@ return new class extends Migration
             $table->float('puntuacion_sentimiento')->nullable(); // -1.0 a 1.0 (calculado)
             $table->string('lenguaje', 10)->nullable();
             $table->json('topicos_extraidos')->nullable(); // Palabras clave o tópicos
-
+            $table->text('vector_reseña')->nullable();
             $table->timestamps();
 
             // Definición de la Clave Foránea

@@ -29,11 +29,41 @@ class Contexto extends Model
         'temperatura_promedio' => 'float',
     ];
 
+    // =========================================================
+    // NUEVO: Descriptor para Vectorización (Paso Clave)
+    // =========================================================
+
+    /**
+     * Genera un string combinado con toda la información relevante para el embedding.
+     * Esta es la "descripción del contexto" que el modelo S-BERT usará.
+     *
+     * @return string
+     */
+    public function getTextoParaVectorizacionAttribute(): string
+    {
+        $texto = "Contexto actual de Tarma: ";
+        $texto .= "Clima {$this->clima_actual}, ";
+        $texto .= "Temporada de {$this->temporada}, ";
+        $texto .= "Temperatura promedio de {$this->temperatura_promedio} grados. ";
+        $texto .= "Transporte {$this->transporte}. ";
+        $texto .= "Densidad turística {$this->densidad_turistica}. ";
+        $texto .= "Recomendación social: {$this->recomendacion_social}. ";
+
+        if ($this->servicios_disponibles) {
+            $texto .= "Los servicios y vías están en buen estado. ";
+        } else {
+            $texto .= "Los servicios están limitados y el estado de vías es {$this->estado_vias}. ";
+        }
+
+        $texto .= "Nivel de seguridad: {$this->nivel_seguridad}.";
+
+        return $texto;
+    }
+
     // Relaciones (para referencia futura)
     // Relación U-C
     public function interaccionesUsuario()
     {
-        // Se asume que InteraccionUC usa 'id_contexto' como FK
         return $this->hasMany(InteraccionUC::class, 'id_contexto', 'id_contexto');
     }
 

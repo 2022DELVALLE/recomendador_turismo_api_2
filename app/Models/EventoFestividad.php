@@ -9,9 +9,9 @@ class EventoFestividad extends Model
 {
     use HasFactory;
 
-    protected $table = 'evento_festividades';
+    protected $table = 'evento_festividades'; // Asumo el plural, revisa si tu tabla se llama 'evento_festividad'
     protected $primaryKey = 'id_evento';
-    
+
     protected $fillable = [
         'nombre_evento',
         'tipo_evento',
@@ -29,10 +29,31 @@ class EventoFestividad extends Model
         'fecha_fin' => 'date',
     ];
 
-    // Relación: Un evento pertenece a un destino (1:N Inversa)
-    public function destino()
+    // =========================================================
+    // ACCESOR CLAVE: Genera el texto para la vectorización (Vector E^0)
+    // =========================================================
+
+    /**
+     * Genera un string combinado con la información más importante del evento
+     * para que el modelo S-BERT lo vectorice (Vector E^0).
+     *
+     * @return string
+     */
+    public function getTextoParaVectorizacionAttribute(): string
     {
-        // El FK es 'lugar_asociado', que referencia a 'id_destino'
+        // Combinamos los campos que describen el evento
+        $texto = "Evento o Festividad: {$this->nombre_evento}. ";
+        $texto .= "Tipo: {$this->tipo_evento}. ";
+        $texto .= "Palabras clave: {$this->palabras_clave}. ";
+        $texto .= "Valor cultural percibido (escala 1-10): {$this->valor_cultural}. ";
+        $texto .= "Se lleva a cabo entre {$this->fecha_inicio?->format('Y-m-d')} y {$this->fecha_fin?->format('Y-m-d')}.";
+
+        return $texto;
+    }
+
+    // Relaciones
+    public function lugarAsociado()
+    {
         return $this->belongsTo(Destino::class, 'lugar_asociado', 'id_destino');
     }
 }

@@ -125,41 +125,18 @@ class ContextoController extends Controller
      */
     public function obtenerContextoActual(Request $request)
     {
+        // ... (Tu lógica para encontrar o simular el contexto actual) ...
         try {
-            // 1. Simulación de la obtención de variables ambientales en tiempo real
-            // NOTA: En un sistema real, esto podría ser una llamada a una API de clima.
-            $condicionesActuales = [
-                'clima_actual' => 'Templado', // Ejemplo basado en la temporada.
-                'temporada' => 'Seca',
-                'servicios_disponibles' => true, // La infraestructura general está operativa.
-            ];
-
-            // 2. Lógica de Matching (Búsqueda del nodo C más relevante)
-            // Aquí, buscamos el registro de Contexto que coincide con estas condiciones.
-            $contextoMatch = Contexto::query()
-                ->where('clima_actual', $condicionesActuales['clima_actual'])
-                ->where('temporada', $condicionesActuales['temporada'])
-                // Opcionalmente, se pueden usar comparaciones de temperatura, etc.
-                ->first(); // Tomamos el primer contexto que cumpla la condición.
+            // Lógica de matching: busca el contexto activo o el que mejor coincide
+            $contextoMatch = Contexto::find(1); // Ejemplo: Usa un ID fijo para la prueba
 
             if (!$contextoMatch) {
-                // Si no hay un contexto predefinido que coincida, se devuelve un contexto de fallback (id=1, por ejemplo).
-                // Es crucial devolver un ID para poder crear el enlace U-C.
-                $contextoMatch = Contexto::find(1);
-
-                if (!$contextoMatch) {
-                    return response()->json([
-                        'error' => 'Contexto por defecto no encontrado. Asegúrese de tener al menos un registro en la tabla contextos.',
-                        'request' => $condicionesActuales
-                    ], 404);
-                }
+                return response()->json(['error' => 'Contexto por defecto no encontrado.'], 404);
             }
 
-            // 3. Respuesta
-            // Devolvemos el contexto encontrado (incluye el id_contexto)
             return response()->json($contextoMatch, 200);
         } catch (Exception $e) {
-            return response()->json(['error' => 'Error de servidor al buscar el contexto actual.', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Error al buscar el contexto actual.', 'message' => $e->getMessage()], 500);
         }
     }
 }
