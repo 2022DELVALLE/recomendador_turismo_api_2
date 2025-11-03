@@ -38,6 +38,7 @@ Route::apiResource('eventos', EventoFestividadController::class);
 // Embeddings (Datos GNN) <-- Añadir este
 Route::apiResource('embeddings', EmbeddingController::class)->except(['update']); // El update de un embedding suele ser un store con overwrite
 Route::get('embeddings/search', [EmbeddingController::class, 'getByReference']);
+Route::get('usuario/{id_usuario}/embedding/initial', [EmbeddingController::class, 'getInitialUserEmbedding']);
 
 // Rutas API para la gestión de Interacciones U-D (Arista U–P) <-- Añadir este
 // Usamos el nombre 'interacciones/ud' para diferenciar de otras interacciones
@@ -76,3 +77,25 @@ Route::apiResource('predicciones', PrediccionRatingController::class);
 
 // Reseñas de Texto (Auxiliar de Interacción)
 Route::apiResource('reviews', ReseñaTextoController::class);
+
+
+
+// Rutas de la aplicación de Recomendación GNN
+
+// B2.1.1: Obtener el embedding más reciente del usuario (U₀, U₁, etc.)
+// GET /api/usuario/{id_usuario}/embedding/initial
+Route::get('usuario/{id_usuario}/embedding/initial', [EmbeddingController::class, 'getInitialUserEmbedding']);
+
+// =====================================================================
+// B2.1.2: Similitud de Embeddings (Recuperación de Recomendaciones Top-3)
+// =====================================================================
+// GET /api/usuario/{id_usuario}/recommendations
+Route::get('usuario/{id_usuario}/recommendations', [EmbeddingController::class, 'calculateSimilarity']);
+
+// B2.2.1: Propagación GNN - Calcula Similitud, Agrega y Genera el nuevo Embedding U₁
+// POST /api/usuario/{id_usuario}/propagate
+Route::post('usuario/{id_usuario}/propagate', [EmbeddingController::class, 'propagateAndAggregate']);
+
+// Rutas REST completas para la gestión de Embeddings
+Route::apiResource('embeddings', EmbeddingController::class)->except(['update']);
+Route::get('embeddings/reference', [EmbeddingController::class, 'getByReference']);

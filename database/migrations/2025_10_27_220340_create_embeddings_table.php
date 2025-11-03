@@ -27,8 +27,9 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Índice para búsquedas rápidas por nodo
-            $table->unique(['tipo_nodo', 'id_referencia']);
+            // Índice para búsquedas rápidas por nodo (IMPORTANTE: Se cambió a index simple)
+            // Esto permite múltiples entradas para el mismo usuario (U₀, U₁, U₂, etc.)
+            $table->index(['tipo_nodo', 'id_referencia']);
         });
 
         Schema::enableForeignKeyConstraints();
