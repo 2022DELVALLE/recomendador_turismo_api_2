@@ -341,7 +341,6 @@ class EmbeddingController extends Controller
      */
     protected function simplificarClima(string $clima_actual): string
     {
-        // Mapea el clima de C ("Templado y Soleado") a etiquetas de P ("Soleado")
         $clima_actual = strtolower($clima_actual);
 
         if (str_contains($clima_actual, 'lluvioso') || str_contains($clima_actual, 'tormenta')) {
@@ -353,20 +352,19 @@ class EmbeddingController extends Controller
         if (str_contains($clima_actual, 'nublado') || str_contains($clima_actual, 'templado')) {
             return 'Templado/Nublado';
         }
-        return 'Otro'; // Caso no cubierto
+        // ¡CORRECCIÓN! Si es un clima no cubierto, asumimos que no es un factor de bloqueo.
+        return ''; // Devolver cadena vacía si no se puede simplificar
     }
-
     /**
      * Implementa la lógica de filtrado de destinos por compatibilidad contextual.
      */
     protected function filtrarPorContexto(array $recommendations, array $contextoActual): array
     {
         $resultados_filtrados = [];
-        $clima_simple = $this->simplificarClima($contextoActual['clima_actual'] ?? '');
 
-        // Determinar si es de día (6:00 a 18:59) o de noche (19:00 a 5:59)
-        $hora_actual = now('America/Lima')->hour;
-        $momento_del_dia = ($hora_actual >= 6 && $hora_actual < 19) ? 'Dia' : 'Noche';
+        // ⭐ OBTENCIÓN DE CONTEXTO CLAVE:
+        $clima_simple = $this->simplificarClima($contextoActual['clima_actual'] ?? '');
+        $momento_del_dia = $contextoActual['momento_del_dia'] ?? 'Día'; // Usar el valor existente, con 'Día' como fallback.
 
         Log::info("Contexto: Clima: {$clima_simple}, Momento: {$momento_del_dia}");
 
@@ -382,18 +380,21 @@ class EmbeddingController extends Controller
 
             if (!$destino) continue;
 
-            // Leer los nuevos campos de metadata. $casts='array' asegura que 'compatibilidad_clima' es un array.
+            // Leer los campos de metadata
             $compatibilidad_clima = $destino->compatibilidad_clima ?? [];
             $horario_relevancia = $destino->horario_relevancia ?? 'Ambos';
 
             // === REGLA 1: Filtrado Climático ===
-            // Si la lista de compatibilidad está vacía, pasa. Si tiene valores, debe coincidir.
-            $pasa_clima = empty($compatibilidad_clima) || in_array($clima_simple, $compatibilidad_clima);
+            // CORRECCIÓN: Si $clima_simple es vacío (clima no clasificable), pasa el filtro.
+            $pasa_clima = empty($compatibilidad_clima) ||
+                empty($clima_simple) || // ⭐ AÑADIDO: Si el clima no pudo ser simplificado, no se filtra.
+                in_array($clima_simple, $compatibilidad_clima);
 
             // === REGLA 2: Filtrado Día/Noche ===
+            // Usamos el valor $momento_del_dia recuperado del ContextoController.
             $pasa_horario = true;
             if (($horario_relevancia === 'Dia' && $momento_del_dia === 'Noche') ||
-                ($horario_relevancia === 'Noche' && $momento_del_dia === 'Dia')
+                ($horario_relevancia === 'Noche' && $momento_del_dia === 'Día') // Asegurar coincidencia de mayúsculas/minúsculas 'Día'/'Noche'
             ) {
                 $pasa_horario = false; // El horario es incompatible
             }
@@ -408,6 +409,7 @@ class EmbeddingController extends Controller
 
         return $resultados_filtrados;
     }
+
 
     // ==============================================================================
     // Funciones REST Generales (Se mantienen para completar la API CRUD)
