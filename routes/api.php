@@ -96,6 +96,13 @@ Route::get('usuario/{id_usuario}/recommendations', [EmbeddingController::class, 
 // POST /api/usuario/{id_usuario}/propagate
 Route::post('usuario/{id_usuario}/propagate', [EmbeddingController::class, 'propagateAndAggregate']);
 
+
+// Ruta de prueba temporal para el filtrado contextual
+Route::get('/test/context-filter', [EmbeddingController::class, 'testContextFilter']);
+
+/**
+ *  B2.1.3
+ */
 // Rutas REST completas para la gestión de Embeddings
 Route::apiResource('embeddings', EmbeddingController::class)->except(['update']);
 Route::get('embeddings/reference', [EmbeddingController::class, 'getByReference']);

@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Exception;
 
+use App\Models\Destino; // Requerido para obtener la metadata P
+use App\Http\Controllers\ContextoController; // Requerido para obtener el Contexto C
+use Illuminate\Support\Facades\Log; // Recomendado para depuración
+
 class EmbeddingController extends Controller
 {
     // ==============================================================================
@@ -154,6 +158,7 @@ class EmbeddingController extends Controller
         return $response; // Retorna la respuesta de error o éxito de la función principal
     }
 
+    // App\Http\Controllers\EmbeddingController.php
 
     // ==============================================================================
     // B2.2.1: Propagación y Agregación de Embeddings (Generación de U₁)
@@ -161,17 +166,17 @@ class EmbeddingController extends Controller
 
     /**
      * Simula la propagación GNN: Agrega los embeddings de los 3 nodos más similares
-     * para generar un nuevo embedding de usuario (U₁).
+     * Y CONTEXTUALMENTE COMPATIBLES para generar un nuevo embedding de usuario (U₁).
      * POST /api/usuario/{id_usuario}/propagate
      */
     public function propagateAndAggregate(string $id_usuario, bool $save_new_embedding = true)
     {
         try {
-            // 1. Obtener el Embedding Inicial del Usuario ($U_0$)
+            // 1. Obtener el Embedding Inicial del Usuario ($U_n$)
             $userEmbeddingRecord = Embedding::where('tipo_nodo', 'U')
                 ->where('id_referencia', $id_usuario)
                 ->orderBy('created_at', 'desc')
-                ->firstOrFail(); // Usamos el más reciente (podría ser U₀, U₁, U₂, etc.)
+                ->firstOrFail();
 
             $userVector = json_decode($userEmbeddingRecord->vector_embedding, true);
             $vectorDimension = count($userVector);
@@ -185,8 +190,7 @@ class EmbeddingController extends Controller
 
             $similarityResults = [];
 
-            // 3. Calcular la Similitud de Coseno para cada candidato
-            $candidateVectors = [];
+            // 3. Calcular la Similitud de Coseno para cada candidato (B2.1.2: CÁLCULO BRUTO)
             foreach ($candidateEmbeddings as $candidate) {
                 if (empty($candidate->vector_embedding)) continue;
 
@@ -205,15 +209,53 @@ class EmbeddingController extends Controller
                 }
             }
 
-            // 4. Ordenar y obtener los 3 mejores (Top-3)
+            // 4. Procesamiento de Recomendaciones: Ordenar, Filtrar y Seleccionar Top-N
+
+            // 4a. Ordenar la Similitud (pre-filtrado)
             usort($similarityResults, function ($a, $b) {
                 return $b['similitud_coseno'] <=> $a['similitud_coseno'];
             });
 
-            $topRecommendations = array_slice($similarityResults, 0, 3);
+            // --- FILTRADO CONTEXTUAL (B2.1.3) ---
+
+            // Obtener el Contexto Actual (C)
+            // Se asume que ContextoController está importado
+            $contextoController = new ContextoController();
+            $contextoResponse = $contextoController->obtenerContextoActual(new Request());
+            $contextoActual = json_decode($contextoResponse->getContent(), true);
+
+            // Aplicación del filtro B2.1.3: Sólo si el contexto es válido
+            if (isset($contextoActual['error']) || !isset($contextoActual['clima_actual'])) {
+                $filteredResults = $similarityResults;
+                Log::warning('No se pudo obtener el contexto actual o es inválido, saltando el filtrado B2.1.3.');
+            } else {
+                // Aplicar el Filtrado Contextual a toda la lista ordenada
+                $filteredResults = $this->filtrarPorContexto($similarityResults, $contextoActual);
+            }
+
+            // --- FIN DEL FILTRADO ---
+
+            // 4b. ⭐ IMPLEMENTACIÓN B2.1.4: Generar Ranking Inicial de 5 Destinos (P)
+            $rankingDestinos = [];
+            foreach ($filteredResults as $rec) {
+                // SOLO se consideran nodos de Destino (P) para el ranking de sugerencias
+                if ($rec['tipo_nodo'] === 'P') {
+                    $rankingDestinos[] = $rec;
+                }
+                // Detenerse después de encontrar los 5 mejores destinos P
+                if (count($rankingDestinos) >= 5) {
+                    break;
+                }
+            }
+            $topRanking5 = $rankingDestinos;
+
+
+            // 4c. OBTENER TOP-3 para Propagación GNN (B2.2.1)
+            // Tomamos los 3 nodos más similares (P, C, E) de la lista filtrada para la agregación GNN.
+            $topRecommendationsGNN = array_slice($filteredResults, 0, 3);
+
 
             // 5. Función de Agregación (Generación de U₁)
-            // Implementaremos la Agregación Promedio (Mean Aggregation)
             $aggregatedVector = array_fill(0, $vectorDimension, 0.0);
             $totalVectors = 0;
 
@@ -224,10 +266,8 @@ class EmbeddingController extends Controller
             }
             $totalVectors++;
 
-            // Incluir los 3 vectores recomendados ($E_{top3}$)
-            $topVectors = [];
-            foreach ($topRecommendations as $rec) {
-                $topVectors[] = $rec['vector'];
+            // Incluir los vectores de las recomendaciones Top-3 GNN ($E_{top3}$)
+            foreach ($topRecommendationsGNN as $rec) {
                 for ($i = 0; $i < $vectorDimension; $i++) {
                     $aggregatedVector[$i] += $rec['vector'][$i];
                 }
@@ -235,9 +275,12 @@ class EmbeddingController extends Controller
             }
 
             // Calcular el promedio
-            $meanVector = array_map(fn($val) => $val / $totalVectors, $aggregatedVector);
+            $meanVector = ($totalVectors > 0)
+                ? array_map(fn($val) => $val / $totalVectors, $aggregatedVector)
+                : $userVector;
 
-            // 6. Refinamiento (Normalización para obtener U₁)
+
+            // 6. Refinamiento (Normalización para obtener U_nuevo)
             $newVectorU1 = $this->normalizeVector($meanVector);
 
             $newEmbedding = null;
@@ -254,27 +297,117 @@ class EmbeddingController extends Controller
                 $newEmbeddingId = $newEmbedding->id_embedding;
             }
 
-            // Limpiar los vectores de la respuesta de recomendaciones (para ser más ligeros)
-            $recommendationsOnly = array_map(function ($rec) {
+            // 8. Devolver la respuesta formateada
+
+            // Limpiar los vectores de la respuesta de Nodos GNN (Top-3)
+            $recommendationsGNN = array_map(function ($rec) {
                 unset($rec['vector']);
                 return $rec;
-            }, $topRecommendations);
+            }, $topRecommendationsGNN);
 
-            // 8. Devolver la respuesta formateada
+            // Limpiar los vectores de la respuesta del Ranking de 5 (B2.1.4)
+
+            $ranking5Only = array_map(function ($rec) {
+                unset($rec['vector']);
+                return $rec;
+            }, $topRanking5);
+
+            // 🚀 APLICACIÓN DE ENRIQUECIMIENTO (B2.1.4 final)
+            $ranking_top_5_sugerencias_enriquecido = $this->enriquecerSugerencias($ranking5Only);
+
             return response()->json([
                 'id_usuario' => (int) $id_usuario,
                 'embedding_id_inicial' => (int) $userEmbeddingRecord->id_embedding,
-                'recomendaciones' => $recommendationsOnly,
+                // Sustituimos $ranking5Only (solo con ID y Similitud) por la versión enriquecida
+                'ranking_top_5_sugerencias' => $ranking_top_5_sugerencias_enriquecido, // <--- LISTO PARA EL FRONTEND
+                'nodos_propagados_GNN' => $recommendationsGNN, // Los 3 nodos que definieron U₁
                 'nuevo_embedding_id' => $newEmbeddingId,
                 'nuevo_embedding_U1' => $newEmbeddingId ? $newVectorU1 : 'No guardado (solo similitud)',
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json(['error' => 'Embedding de usuario (' . $id_usuario . ') no encontrado. No se puede propagar la recomendación.'], 404);
         } catch (Exception $e) {
+            Log::error("Error en propagateAndAggregate para usuario $id_usuario: " . $e->getMessage());
             return response()->json(['error' => 'Error en la propagación y agregación GNN.', 'message' => $e->getMessage()], 500);
         }
     }
 
+    // ==============================================================================
+    // B2.1.3: LÓGICA DE FILTRADO CONTEXTUAL (C)
+    // ==============================================================================
+
+    /**
+     * Función auxiliar para simplificar el clima complejo a una etiqueta de búsqueda.
+     */
+    protected function simplificarClima(string $clima_actual): string
+    {
+        // Mapea el clima de C ("Templado y Soleado") a etiquetas de P ("Soleado")
+        $clima_actual = strtolower($clima_actual);
+
+        if (str_contains($clima_actual, 'lluvioso') || str_contains($clima_actual, 'tormenta')) {
+            return 'Lluvioso';
+        }
+        if (str_contains($clima_actual, 'soleado') || str_contains($clima_actual, 'despejado')) {
+            return 'Soleado';
+        }
+        if (str_contains($clima_actual, 'nublado') || str_contains($clima_actual, 'templado')) {
+            return 'Templado/Nublado';
+        }
+        return 'Otro'; // Caso no cubierto
+    }
+
+    /**
+     * Implementa la lógica de filtrado de destinos por compatibilidad contextual.
+     */
+    protected function filtrarPorContexto(array $recommendations, array $contextoActual): array
+    {
+        $resultados_filtrados = [];
+        $clima_simple = $this->simplificarClima($contextoActual['clima_actual'] ?? '');
+
+        // Determinar si es de día (6:00 a 18:59) o de noche (19:00 a 5:59)
+        $hora_actual = now('America/Lima')->hour;
+        $momento_del_dia = ($hora_actual >= 6 && $hora_actual < 19) ? 'Dia' : 'Noche';
+
+        Log::info("Contexto: Clima: {$clima_simple}, Momento: {$momento_del_dia}");
+
+        foreach ($recommendations as $rec) {
+            // Solo aplicar filtro a los nodos Destino (P)
+            if ($rec['tipo_nodo'] !== 'P') {
+                $resultados_filtrados[] = $rec;
+                continue;
+            }
+
+            // Cargar metadata de Destino
+            $destino = Destino::find($rec['id_referencia']);
+
+            if (!$destino) continue;
+
+            // Leer los nuevos campos de metadata. $casts='array' asegura que 'compatibilidad_clima' es un array.
+            $compatibilidad_clima = $destino->compatibilidad_clima ?? [];
+            $horario_relevancia = $destino->horario_relevancia ?? 'Ambos';
+
+            // === REGLA 1: Filtrado Climático ===
+            // Si la lista de compatibilidad está vacía, pasa. Si tiene valores, debe coincidir.
+            $pasa_clima = empty($compatibilidad_clima) || in_array($clima_simple, $compatibilidad_clima);
+
+            // === REGLA 2: Filtrado Día/Noche ===
+            $pasa_horario = true;
+            if (($horario_relevancia === 'Dia' && $momento_del_dia === 'Noche') ||
+                ($horario_relevancia === 'Noche' && $momento_del_dia === 'Dia')
+            ) {
+                $pasa_horario = false; // El horario es incompatible
+            }
+
+            // --- Aplicar Filtros ---
+            if ($pasa_clima && $pasa_horario) {
+                $resultados_filtrados[] = $rec;
+            } else {
+                Log::debug("Destino #{$rec['id_referencia']} filtrado. Pasa Clima: " . ($pasa_clima ? 'Sí' : 'No') . ", Pasa Horario: " . ($pasa_horario ? 'Sí' : 'No'));
+            }
+        }
+
+        return $resultados_filtrados;
+    }
 
     // ==============================================================================
     // Funciones REST Generales (Se mantienen para completar la API CRUD)
@@ -391,5 +524,94 @@ class EmbeddingController extends Controller
         } catch (Exception $e) {
             return response()->json(['error' => 'Error al buscar el embedding por referencia.', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * MÉTODO DE PRUEBA TEMPORAL: Prueba B2.1.3
+     * Simula el contexto y los resultados de similitud para probar la lógica de filtrado.
+     * GET /api/test/context-filter
+     */
+    public function testContextFilter()
+    {
+        // 1. Simular el Contexto (C) - Prueba con CLIMA SOLEADO
+        // **Si ejecutas esto entre las 6 AM y 6:59 PM, será 'Día'. De lo contrario, 'Noche'.**
+        $contextoActual = [
+            'clima_actual' => 'Despejado y Soleado', // Se simplificará a 'Soleado'
+            'temperatura' => 25,
+        ];
+
+        // 2. Simular Resultados de Similitud Bruta (B2.1.2)
+        // Usamos IDs de referencia ficticios (101, 102, 103) que deben coincidir con tus Destinos de prueba en la DB.
+        $similarityResults = [
+            // ID 101: Alta Similitud. Asumimos metadata: Sol/Día.
+            ['tipo_nodo' => 'P', 'id_referencia' => 101, 'similitud_coseno' => 0.90, 'vector' => [0.1, 0.2, 0.3]],
+            // ID 102: Similitud Media. Asumimos metadata: Noche (Debería ser filtrado si es de día).
+            ['tipo_nodo' => 'P', 'id_referencia' => 102, 'similitud_coseno' => 0.85, 'vector' => [0.4, 0.5, 0.6]],
+            // ID 103: Similitud Baja. Asumimos metadata: Lluvioso (Debería ser filtrado si es Soleado).
+            ['tipo_nodo' => 'P', 'id_referencia' => 103, 'similitud_coseno' => 0.80, 'vector' => [0.7, 0.8, 0.9]],
+            // ID 200: Nodo Entidad (E). Siempre pasa el filtro de P.
+            ['tipo_nodo' => 'E', 'id_referencia' => 200, 'similitud_coseno' => 0.70, 'vector' => [0.9, 0.8, 0.7]],
+        ];
+
+        // 3. Aplicar la Lógica de Filtrado (B2.1.3)
+        $filteredResults = $this->filtrarPorContexto($similarityResults, $contextoActual);
+
+        // 4. Preparar la respuesta para Postman
+        $momento_del_dia = (now('America/Lima')->hour >= 6 && now('America/Lima')->hour < 19) ? 'Día' : 'Noche';
+        $clima_simple = $this->simplificarClima($contextoActual['clima_actual']);
+
+        return response()->json([
+            'simulacion_contexto' => [
+                'clima_actual_buscado' => $clima_simple,
+                'momento_del_dia_actual' => $momento_del_dia,
+                'hora_ejecucion_lima' => now('America/Lima')->toTimeString(),
+            ],
+            'resultados_similitud_bruta' => array_map(fn($r) => ['id' => $r['id_referencia'], 'similitud' => $r['similitud_coseno'], 'tipo' => $r['tipo_nodo']], $similarityResults),
+            'resultados_filtrados' => array_map(fn($r) => ['id' => $r['id_referencia'], 'similitud' => $r['similitud_coseno'], 'tipo' => $r['tipo_nodo']], $filteredResults),
+            'total_filtrados' => count($filteredResults),
+        ]);
+    }
+    private function enriquecerSugerencias(array $sugerencias): array
+    {
+        // Obtener solo los IDs de los destinos sugeridos
+        $destinoIds = collect($sugerencias)
+            ->filter(fn($item) => $item['tipo_nodo'] === 'P') // Solo nos interesan los Destinos (P)
+            ->pluck('id_referencia')
+            ->unique()
+            ->toArray();
+
+        // Consultar la base de datos para obtener los detalles de todos los destinos en una sola consulta
+        $destinosDetalles = Destino::whereIn('id_destino', $destinoIds)
+            ->select('id_destino', 'nombre_destino', 'categoria', 'subcategoria', 'latitud', 'longitud')
+            ->get()
+            ->keyBy('id_destino'); // Usamos keyBy para un acceso O(1) rápido
+
+        $sugerenciasEnriquecidas = [];
+
+        foreach ($sugerencias as $sugerencia) {
+            if ($sugerencia['tipo_nodo'] === 'P') {
+                $id = $sugerencia['id_referencia'];
+
+                // Si encontramos el detalle del destino en la colección
+                if ($destinosDetalles->has($id)) {
+                    $detalle = $destinosDetalles->get($id);
+
+                    $sugerenciasEnriquecidas[] = [
+                        'id_destino' => (int) $id,
+                        'nombre_destino' => $detalle->nombre_destino,
+                        'categoria' => $detalle->categoria,
+                        'subcategoria' => $detalle->subcategoria,
+                        'similitud_coseno' => $sugerencia['similitud_coseno'],
+                        // Puedes añadir más detalles necesarios para el mapa o la interfaz de usuario
+                        'latitud' => $detalle->latitud,
+                        'longitud' => $detalle->longitud,
+                        // Nota: Aquí podrías añadir un campo para la URL de una imagen
+                    ];
+                }
+            }
+        }
+
+        // Opcional: Reordenar por similitud si el ranking inicial no estaba perfectamente ordenado (aunque debería)
+        return collect($sugerenciasEnriquecidas)->sortByDesc('similitud_coseno')->values()->toArray();
     }
 }

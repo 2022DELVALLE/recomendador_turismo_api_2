@@ -32,6 +32,15 @@ return new class extends Migration
             $table->text('etiquetas_tematicas')->nullable();
             $table->string('temporada_alta', 150)->nullable();
 
+            // 🔹 Nuevos campos añadidos
+            $table->json('compatibilidad_clima')->nullable()
+                ->comment('Climas compatibles. Array JSON.');
+
+            $table->string('horario_relevancia', 10)
+                ->nullable()
+                ->default('Ambos')
+                ->comment('Relevancia horaria: Dia, Noche, Ambos.');
+
             $table->timestamps();
         });
 

@@ -26,9 +26,13 @@ class Destino extends Model
         'tiempo_visita_promedio',
         'etiquetas_tematicas',
         'temporada_alta',
+        // ¡NUEVOS CAMPOS!
+        'compatibilidad_clima', 
+        'horario_relevancia',
     ];
 
     protected $casts = [
+        'compatibilidad_clima' => 'array',
         'latitud' => 'float',
         'longitud' => 'float',
         'altitud' => 'float',
