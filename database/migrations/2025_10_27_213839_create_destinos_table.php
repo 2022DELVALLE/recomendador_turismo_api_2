@@ -36,10 +36,19 @@ return new class extends Migration
             $table->json('compatibilidad_clima')->nullable()
                 ->comment('Climas compatibles. Array JSON.');
 
+
             $table->string('horario_relevancia', 10)
                 ->nullable()
                 ->default('Ambos')
                 ->comment('Relevancia horaria: Dia, Noche, Ambos.');
+
+            $table->string('descripcion_corta', 500)
+                ->nullable();// Hacemos que sea opcional al principio si la data no existe aún.
+
+            // Campo requerido para la interfaz B2.3.2 - URL de la foto principal.
+            // Usamos 'string' ya que es una URL.
+            $table->string('foto_principal_url', 1024)
+                ->nullable(); // Opcional, ya que las URLs pueden ser grandes.
 
             $table->timestamps();
         });

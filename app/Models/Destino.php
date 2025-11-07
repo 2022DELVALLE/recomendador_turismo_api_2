@@ -29,6 +29,8 @@ class Destino extends Model
         // ¡NUEVOS CAMPOS!
         'compatibilidad_clima', 
         'horario_relevancia',
+        'descripcion_corta', // Campo requerido para B2.3.2
+        'foto_principal_url',
     ];
 
     protected $casts = [

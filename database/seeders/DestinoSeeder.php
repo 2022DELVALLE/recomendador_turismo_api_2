@@ -30,6 +30,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Semana Santa, Aniversario de Tarma (Julio)',
                 'compatibilidad_clima' => json_encode(['Soleado', 'Templado/Nublado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'El corazón de Tarma, conocida como la "Perla de los Andes". Destaca por su entorno florido y la arquitectura que la rodea.',
+                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/plaza-armas-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Catedral de Santa Ana de Tarma',
@@ -46,6 +50,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Semana Santa, Navidad',
                 'compatibilidad_clima' => json_encode(['Nublado', 'Templado']),
                 'horario_relevancia' => 'Noche',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Imponente templo de estilo neoclásico ubicado frente a la plaza. Notable por sus vitrales de artistas locales.',
+                'foto_principal_url' => 'https://www.ytuqueplanes.com/imagenes/fotos/large/catedral-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Museo Regional Manuel A. Odría',
@@ -62,6 +70,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Fines de Semana Largos',
                 'compatibilidad_clima' => json_encode(['Templado', 'Lluvioso Ligero']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Casa-Museo dedicada al expresidente Manuel A. Odría, exhibiendo su vida, objetos militares y una colección arqueológica regional.',
+                'foto_principal_url' => 'https://cdn.www.gob.pe/uploads/document/file/2798889/Museo%20Regional%20Manuel%20A.%20Odr%C3%ADa.jpg',
             ],
 
             // --- 2. Atractivos Arqueológicos e Históricos ---
@@ -80,6 +92,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Mayo a Septiembre (Estación Seca)',
                 'compatibilidad_clima' => json_encode(['Seco', 'Soleado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Antiguo centro administrativo Inca en la ruta del Qhapaq Ñan, conocido por sus Qolqas (almacenes) y vistas panorámicas del valle.',
+                'foto_principal_url' => 'https://www.rumbosdelperu.com/wp-content/uploads/2016/09/Tarmatambo_ruinas.jpg',
             ],
             [
                 'nombre_destino' => 'Ruinas Arqueológicas de Paca',
@@ -96,6 +112,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Mayo a Julio',
                 'compatibilidad_clima' => json_encode(['Seco', 'Soleado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Restos de una ciudadela Pre-Inca de la cultura Wanka, destacando por sus estructuras de piedra y su posición elevada con grandes vistas.',
+                'foto_principal_url' => 'https://live.staticflickr.com/5176/5425642958_4e0051e249_b.jpg',
             ],
             [
                 'nombre_destino' => 'Capilla del Señor de la Cárcel',
@@ -112,6 +132,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Octubre (Señor de los Milagros)',
                 'compatibilidad_clima' => json_encode(['Nublado', 'Templado']),
                 'horario_relevancia' => 'Noche',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Pequeña capilla conocida por la devoción popular al Señor de la Cárcel, con una rica historia ligada a mitos y la fe local.',
+                'foto_principal_url' => 'https://img.fotocommunity.com/tarma-capilla-senor-de-la-carcel-de7b80a5-f860-4543-9844-3c66f6424b9e.jpg?height=1080',
             ],
 
             // --- 3. Atractivos Naturales y de Aventura ---
@@ -130,6 +154,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Enero (Aniversario), Fiestas Patrias',
                 'compatibilidad_clima' => json_encode(['Lluvioso Ligero', 'Templado']),
                 'horario_relevancia' => 'Ambos',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Una de las cavernas más profundas de Sudamérica, famosa por sus formaciones de estalactitas y estalagmitas y por su río subterráneo.',
+                'foto_principal_url' => 'https://storage.googleapis.com/wzrk-peru/huagapo-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Campiña de Sacsamarca (Valle de las Flores)',
@@ -146,6 +174,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Octubre-Noviembre (Día de los Muertos, mayor floración)',
                 'compatibilidad_clima' => json_encode(['Soleado', 'Templado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'El corazón floricultor de Tarma. Extensos campos de claveles, gladiolos y otras flores, ideal para fotografía y turismo rural.',
+                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/campina-sacsamarca-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Cachipuquio (Manantiales Salinos - San Pedro de Cajas)',
@@ -162,6 +194,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Mayo a Septiembre',
                 'compatibilidad_clima' => json_encode(['Seco', 'Frío']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Manantiales de agua salada a gran altitud, utilizados ancestralmente para el consumo animal y por sus propiedades minerales.',
+                'foto_principal_url' => 'https://i.ytimg.com/vi/D022c4_xL1o/maxresdefault.jpg',
             ],
             [
                 'nombre_destino' => 'Catarata Pacchacoto (Distrito de San Pedro de Cajas)',
@@ -178,6 +214,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Meses de Lluvias (mayor caudal)',
                 'compatibilidad_clima' => json_encode(['Lluvioso', 'Nublado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Impresionante caída de agua ubicada cerca del nevado Pacchacoto, con un entorno natural ideal para el trekking y la observación de aves.',
+                'foto_principal_url' => 'https://turismotarma.com/wp-content/uploads/2023/10/catarata-paccha.jpg',
             ],
             [
                 'nombre_destino' => 'Laguna de Cocón (Distrito de Palcamayo)',
@@ -194,6 +234,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Mayo a Agosto',
                 'compatibilidad_clima' => json_encode(['Frío', 'Seco']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Hermosa laguna de origen glaciar rodeada de paisajes altoandinos, ideal para la pesca de truchas y el avistamiento de fauna local.',
+                'foto_principal_url' => 'https://storage.googleapis.com/wzrk-peru/laguna-cocon-tarma.jpg',
             ],
 
             // --- 4. Atractivos Religiosos y Productivos ---
@@ -212,6 +256,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Fiesta Central (Mayo)',
                 'compatibilidad_clima' => json_encode(['Templado', 'Soleado']),
                 'horario_relevancia' => 'Ambos',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Importante lugar de peregrinación donde la imagen del Cristo está plasmada en una roca. Su fiesta en mayo es la más grande de la región.',
+                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/santuario-muruhuay-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Distrito de San Pedro de Cajas (Cuna del Tapiz)',
@@ -228,6 +276,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Carnavales, Fiestas Patronales (Junio)',
                 'compatibilidad_clima' => json_encode(['Frío', 'Seco']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Capital reconocida por su tradición textil, donde se elaboran tapices artísticos tridimensionales de lana de alpaca y oveja.',
+                'foto_principal_url' => 'https://cajamarcaopina.com/wp-content/uploads/2021/07/San-Pedro-de-Cajas-tapices.jpg',
             ],
             [
                 'nombre_destino' => 'Hacienda de Sacsamarca / Ex-Hacienda La Florida',
@@ -244,6 +296,10 @@ class DestinoSeeder extends Seeder
                 'temporada_alta' => 'Fin de Semana, Temporada de Flores',
                 'compatibilidad_clima' => json_encode(['Soleado', 'Templado']),
                 'horario_relevancia' => 'Dia',
+
+                // NUEVOS CAMPOS AÑADIDOS
+                'descripcion_corta' => 'Antigua casona colonial rodeada de campos de flores, convertida en un atractivo agroturístico con venta de productos lácteos y quesos.',
+                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/hacienda-la-florida-tarma.jpg',
             ],
         ]);
     }

@@ -136,8 +136,8 @@ class UsuarioController extends Controller
         $clima_simplificado = $this->simplificarClima($clima_actual);
 
         // 2. Buscar el registro de Contexto DB que coincida con el clima simplificado (SELECT Contexto)
-        // CORRECCIÓN: Se eliminó ->where('momento_del_dia', ...) porque la columna no existe en la tabla 'contextos'.
-        $contexto_obj = Contexto::where('clima_actual', $clima_simplificado)
+        // CORRECCIÓN DE ROBUSTEZ: Usamos LOWER() en la base de datos y en el valor buscado para insensibilidad a mayúsculas.
+        $contexto_obj = Contexto::whereRaw('LOWER(clima_actual) = ?', [strtolower($clima_simplificado)])
             ->firstOrFail(); // Lanza ModelNotFoundException si no existe
 
         $id_contexto = $contexto_obj->id_contexto;
@@ -155,7 +155,6 @@ class UsuarioController extends Controller
             'vector_c0' => $vector_c0_real,
         ];
     }
-
     /**
      * Función auxiliar para simplificar el clima, mapeando los descriptores RAW
      * a los nombres exactos de contexto vectorizado en la base de datos (DB).

@@ -9,18 +9,16 @@ use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use App\Models\TransporteDisponible;
 
 class ContextoController extends Controller
 {
-    /**
-     * MÉTODOS EXISTENTES (index, store, show, update, destroy)
-     * ... (Tu código existente aquí) ...
-     */
+    // Clave para la caché
+    private const CLIMATE_CACHE_KEY = 'tarma_weather_context_3927758';
+    private const CLIMATE_CACHE_TTL = 600; // 10 minutos
 
-    /**
-     * Display a listing of the resource.
-     * GET /api/contextos
-     */
+    // Métodos existentes (index, store, show, update, destroy) - Se mantienen sin cambios
+
     public function index()
     {
         try {
@@ -31,10 +29,6 @@ class ContextoController extends Controller
         }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     * POST /api/contextos
-     */
     public function store(Request $request)
     {
         try {
@@ -55,10 +49,6 @@ class ContextoController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     * GET /api/contextos/{id_contexto}
-     */
     public function show(string $id)
     {
         try {
@@ -71,10 +61,6 @@ class ContextoController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     * PUT/PATCH /api/contextos/{id_contexto}
-     */
     public function update(Request $request, string $id)
     {
         try {
@@ -97,10 +83,6 @@ class ContextoController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     * DELETE /api/contextos/{id_contexto}
-     */
     public function destroy(string $id)
     {
         try {
@@ -115,15 +97,13 @@ class ContextoController extends Controller
     }
 
     /**
-     * Obtiene el contexto actual (Clima y Hora) para Tarma.
-     * Implementa una caché de 10 minutos para cumplir con el plan gratuito de OpenWeather.
+     * Obtiene el contexto actual (Clima, Hora y TRANSPORTE) para Tarma.
      * GET /api/contexto/actual
      */
     public function obtenerContextoActual(Request $request)
     {
-        // 🚨 CORRECCIÓN: Usamos el ID de Tarma encontrado (3927758) para la clave de caché.
-        $cacheKey = 'tarma_weather_context_3927758';
-        $cacheDuration = 600; // 10 minutos * 60 segundos/minuto
+        $cacheKey = self::CLIMATE_CACHE_KEY;
+        $cacheDuration = self::CLIMATE_CACHE_TTL;
 
         // --- 1. INTENTAR OBTENER DE CACHÉ (LÍMITE DE 10 MINUTOS) ---
         if (Cache::has($cacheKey)) {
@@ -132,60 +112,26 @@ class ContextoController extends Controller
         }
 
         try {
-            // --- 2. Preparación para la Llamada a la API (Solo si no está cacheado) ---
-            $apiKey = env('OPENWEATHER_API_KEY');
-            // 🚨 CORRECCIÓN: La URL base en .env debe ser: https://api.openweathermap.org/data/2.5/weather
-            $baseUrl = env('OPENWEATHER_BASE_URL');
-            // 🚨 CORRECCIÓN: Usamos el ID de Tarma encontrado.
-            $cityId = env('OPENWEATHER_CITY_ID', '3927758');
-
-            if (!$apiKey) {
-                Log::warning("Falta OPENWEATHER_API_KEY en .env. Usando Fallback.");
-                return $this->getFallbackContext();
-            }
-
-            // Llamada a la API de clima actual (weather) usando 'id'
-            $response = Http::get($baseUrl, [
-                'id' => $cityId,
-                'appid' => $apiKey,
-                'units' => 'metric',
-                'lang' => 'es'
-            ]);
-
-            // Manejo de la respuesta
-            if ($response->successful()) {
-                $data = $response->json();
-
-                // 🚨 CORRECCIÓN: El endpoint /weather devuelve directamente el objeto, no una lista.
-                // Se extrae directamente sin usar $data['list'][0].
-                $clima_actual = $data['weather'][0]['description'] ?? 'Desconocido';
-                $temperatura = $data['main']['temp'] ?? null;
-
-                if (is_null($temperatura)) {
-                    Log::warning("Respuesta de OpenWeather sin datos de temperatura.");
-                    return $this->getFallbackContext();
-                }
-            } else {
-                Log::error("Error al obtener el clima: " . $response->body());
-                return $this->getFallbackContext();
-            }
+            // --- 2. Obtener Datos de Clima ---
+            $climaData = $this->llamarApiClima();
 
             // --- 3. Obtener Datos de Hora ---
             $now = now('America/Lima');
             $hora_actual = $now->hour;
             $momento_del_dia = ($hora_actual >= 6 && $hora_actual < 19) ? 'Día' : 'Noche';
 
-            // --- 4. Preparar la Respuesta, Cachear y Devolver ---
-            $contextoCompleto = [
-                'clima_actual' => ucfirst($clima_actual),
-                'temperatura_c' => $temperatura,
+            // --- 4. Obtener Datos de Transporte (IMPLEMENTACIÓN B2.2.3) ---
+            $transporteData = $this->obtenerOpcionesTransporte();
+
+            // --- 5. Preparar la Respuesta, Cachear y Devolver ---
+            $contextoCompleto = array_merge($climaData, $transporteData, [
                 'momento_del_dia' => $momento_del_dia,
                 'hora_ejecucion' => $now->toTimeString(),
-            ];
+            ]);
 
             // Almacenar en caché por 10 minutos (600 segundos) antes de devolver
             Cache::put($cacheKey, $contextoCompleto, $cacheDuration);
-            Log::info('Nuevo contexto obtenido de la API y cacheado por 10 minutos.');
+            Log::info('Nuevo contexto obtenido de la API/DB y cacheado por 10 minutos.');
 
             return response()->json($contextoCompleto, 200);
         } catch (Exception $e) {
@@ -195,7 +141,77 @@ class ContextoController extends Controller
     }
 
     /**
-     * Devuelve un contexto predeterminado en caso de fallo de la API.
+     * Consulta la base de datos para obtener las opciones de transporte activas (B2.2.3).
+     * @return array
+     */
+    private function obtenerOpcionesTransporte(): array
+    {
+        try {
+            // Consulta solo los transportes que están activos
+            $transportesActivos = TransporteDisponible::where('activo', true)
+                ->get(['tipo_transporte', 'costo_base_minimo', 'horario_disponibilidad'])
+                ->toArray();
+        } catch (Exception $e) {
+            Log::error("Error al obtener transporte de la DB: " . $e->getMessage());
+            // Devuelve un array vacío si la DB falla para no bloquear el proceso
+            $transportesActivos = [];
+        }
+
+        return [
+            'transporte_disponible' => $transportesActivos
+        ];
+    }
+
+    /**
+     * Simula la llamada a la API de clima (anteriormente en obtenerContextoActual).
+     * @return array
+     */
+    private function llamarApiClima(): array
+    {
+        $apiKey = env('OPENWEATHER_API_KEY');
+        $baseUrl = env('OPENWEATHER_BASE_URL');
+        $cityId = env('OPENWEATHER_CITY_ID', '3927758');
+
+        // Simulación: Si falta la clave API, se salta la llamada y se usa un dato seguro.
+        if (!$apiKey) {
+            Log::warning("Falta OPENWEATHER_API_KEY. Usando dato de clima seguro.");
+            return [
+                'clima_actual' => 'Nublado',
+                'temperatura_c' => 16.0,
+            ];
+        }
+
+        try {
+            $response = Http::get($baseUrl, [
+                'id' => $cityId,
+                'appid' => $apiKey,
+                'units' => 'metric',
+                'lang' => 'es'
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $clima_actual = $data['weather'][0]['description'] ?? 'Desconocido';
+                $temperatura = $data['main']['temp'] ?? 15.0;
+
+                return [
+                    'clima_actual' => ucfirst($clima_actual),
+                    'temperatura_c' => $temperatura,
+                ];
+            } else {
+                Log::error("Error HTTP OpenWeather: " . $response->body());
+                throw new Exception("Error en API de Clima.");
+            }
+        } catch (Exception $e) {
+            Log::error("Fallo la llamada a la API de Clima: " . $e->getMessage());
+            // Lanzamos una excepción para que el catch principal active el Fallback completo
+            throw $e;
+        }
+    }
+
+    /**
+     * Devuelve un contexto predeterminado en caso de fallo de la API o DB.
      */
     private function getFallbackContext(): \Illuminate\Http\JsonResponse
     {
@@ -208,6 +224,13 @@ class ContextoController extends Controller
             'temperatura_c' => 15,
             'momento_del_dia' => $momento_del_dia,
             'hora_ejecucion' => $now->toTimeString(),
+            'transporte_disponible' => [ // <--- Transporte de Fallback
+                [
+                    'tipo_transporte' => 'Taxi Urbano',
+                    'costo_base_minimo' => 5.00,
+                    'horario_disponibilidad' => '24/7'
+                ]
+            ],
             'error' => 'No se pudo obtener el contexto en tiempo real. Usando valores predeterminados.'
         ], 503);
     }
