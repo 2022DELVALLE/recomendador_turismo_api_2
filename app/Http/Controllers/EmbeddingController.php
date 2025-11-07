@@ -584,7 +584,8 @@ class EmbeddingController extends Controller
 
         // Consultar la base de datos para obtener los detalles de todos los destinos en una sola consulta
         $destinosDetalles = Destino::whereIn('id_destino', $destinoIds)
-            ->select('id_destino', 'nombre_destino', 'categoria', 'subcategoria', 'latitud', 'longitud')
+            ->select('id_destino', 'nombre_destino', 'categoria', 'subcategoria', 'latitud', 'longitud',       'descripcion_corta', // Campo requerido para B2.3.2
+        'foto_principal_url',)
             ->get()
             ->keyBy('id_destino'); // Usamos keyBy para un acceso O(1) rápido
 
@@ -607,6 +608,8 @@ class EmbeddingController extends Controller
                         // Puedes añadir más detalles necesarios para el mapa o la interfaz de usuario
                         'latitud' => $detalle->latitud,
                         'longitud' => $detalle->longitud,
+                        'descripcion_corta' => $detalle->descripcion_corta,
+                        'foto_principal_url' => $detalle->foto_principal_url,
                         // Nota: Aquí podrías añadir un campo para la URL de una imagen
                     ];
                 }
