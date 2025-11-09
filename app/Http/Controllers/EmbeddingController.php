@@ -10,6 +10,7 @@ use Exception;
 
 use App\Models\Destino; // Requerido para obtener la metadata P
 use App\Http\Controllers\ContextoController; // Requerido para obtener el Contexto C
+use App\Models\EventoFestividad;
 use Illuminate\Support\Facades\Log; // Recomendado para depuración
 
 class EmbeddingController extends Controller
@@ -151,6 +152,7 @@ class EmbeddingController extends Controller
             // Si solo pedimos la similitud, quitamos los datos de propagación y guardado
             unset($content['nuevo_embedding_id']);
             unset($content['nuevo_embedding_U1']);
+            unset($content['nodos_propagados_GNN']);
 
             return response()->json($content, 200);
         }
@@ -306,7 +308,6 @@ class EmbeddingController extends Controller
             }, $topRecommendationsGNN);
 
             // Limpiar los vectores de la respuesta del Ranking de 5 (B2.1.4)
-
             $ranking5Only = array_map(function ($rec) {
                 unset($rec['vector']);
                 return $rec;
@@ -315,11 +316,16 @@ class EmbeddingController extends Controller
             // 🚀 APLICACIÓN DE ENRIQUECIMIENTO (B2.1.4 final)
             $ranking_top_5_sugerencias_enriquecido = $this->enriquecerSugerencias($ranking5Only);
 
+            // ⭐ B2.4.1/B2.4.2: Recuperar Eventos y Festividades Cercanas
+            $topDestinationIds = collect($ranking_top_5_sugerencias_enriquecido)->pluck('id_destino')->toArray();
+            $eventos_cercanos = $this->getRelevantEvents($topDestinationIds);
+
+
             return response()->json([
                 'id_usuario' => (int) $id_usuario,
                 'embedding_id_inicial' => (int) $userEmbeddingRecord->id_embedding,
-                // Sustituimos $ranking5Only (solo con ID y Similitud) por la versión enriquecida
-                'ranking_top_5_sugerencias' => $ranking_top_5_sugerencias_enriquecido, // <--- LISTO PARA EL FRONTEND
+                'ranking_top_5_sugerencias' => $ranking_top_5_sugerencias_enriquecido, // <-- DESTINOS
+                'eventos_cercanos' => $eventos_cercanos, // <-- NUEVOS EVENTOS (B2.4.2)
                 'nodos_propagados_GNN' => $recommendationsGNN, // Los 3 nodos que definieron U₁
                 'nuevo_embedding_id' => $newEmbeddingId,
                 'nuevo_embedding_U1' => $newEmbeddingId ? $newVectorU1 : 'No guardado (solo similitud)',
@@ -331,6 +337,51 @@ class EmbeddingController extends Controller
             return response()->json(['error' => 'Error en la propagación y agregación GNN.', 'message' => $e->getMessage()], 500);
         }
     }
+
+    // ==============================================================================
+    // B2.4.1/B2.4.2: LÓGICA DE EVENTOS (E)
+    // ==============================================================================
+
+    /**
+     * B2.4.1/B2.4.2: Recupera eventos y festividades asociadas a los destinos sugeridos (P)
+     * que se encuentren activos (fecha actual o futura).
+     *
+     * @param array $topDestinationIds Array de IDs de los destinos (P) mejor rankeados.
+     * @return array
+     */
+    protected function getRelevantEvents(array $topDestinationIds): array
+    {
+        try {
+            // ⭐ CORRECCIÓN: Usar 'lugarAsociado' que es el nombre del método de la relación en el modelo EventoFestividad.
+            $events = EventoFestividad::with('lugarAsociado') 
+                ->whereIn('lugar_asociado', $topDestinationIds)
+                ->whereDate('fecha_inicio', '>=', now()->toDateString())
+                ->orderBy('fecha_inicio', 'asc')
+                ->get();
+
+            // Formatear la salida según B2.4.2: Nombre, Fecha, Hora, Lugar, Tipo de Evento
+            return $events->map(function ($event) {
+                // ⭐ CORRECCIÓN: Usar la relación 'lugarAsociado' para acceder al destino.
+                $destinoNombre = $event->lugarAsociado->nombre_destino ?? 'Ubicación Desconocida';
+
+                return [
+                    'id_evento' => (int) $event->id_evento,
+                    'nombre_evento' => $event->nombre_evento,
+                    'tipo_evento' => $event->tipo_evento,
+                    'fecha_inicio' => $event->fecha_inicio, // Fecha del evento
+                    'lugar' => $destinoNombre, // Nombre del destino asociado
+                    // Estos campos (horario y descripcion_corta) DEBEN existir en el modelo EventoFestividad para ser usados.
+                    'horario_evento' => $event->horario ?? 'Sin especificar', 
+                    'descripcion_corta' => $event->descripcion_corta ?? '', 
+                ];
+            })->toArray();
+        } catch (Exception $e) {
+            // El log original se mantiene, pero la relación ahora debería funcionar.
+            Log::error("Error al obtener eventos relevantes: " . $e->getMessage());
+            return []; // Devolver un array vacío en caso de error
+        }
+    }
+
 
     // ==============================================================================
     // B2.1.3: LÓGICA DE FILTRADO CONTEXTUAL (C)
@@ -537,10 +588,9 @@ class EmbeddingController extends Controller
     {
         // 1. Simular el Contexto (C) - Prueba con CLIMA SOLEADO
         // **Si ejecutas esto entre las 6 AM y 6:59 PM, será 'Día'. De lo contrario, 'Noche'.**
-        $contextoActual = [
-            'clima_actual' => 'Despejado y Soleado', // Se simplificará a 'Soleado'
-            'temperatura' => 25,
-        ];
+        $contextoController = new ContextoController();
+        $contextoResponse = $contextoController->obtenerContextoActual(new Request());
+        $contextoActual = json_decode($contextoResponse->getContent(), true);
 
         // 2. Simular Resultados de Similitud Bruta (B2.1.2)
         // Usamos IDs de referencia ficticios (101, 102, 103) que deben coincidir con tus Destinos de prueba en la DB.
@@ -559,8 +609,8 @@ class EmbeddingController extends Controller
         $filteredResults = $this->filtrarPorContexto($similarityResults, $contextoActual);
 
         // 4. Preparar la respuesta para Postman
-        $momento_del_dia = (now('America/Lima')->hour >= 6 && now('America/Lima')->hour < 19) ? 'Día' : 'Noche';
-        $clima_simple = $this->simplificarClima($contextoActual['clima_actual']);
+        $momento_del_dia = $contextoActual['momento_del_dia'] ?? ((now('America/Lima')->hour >= 6 && now('America/Lima')->hour < 19) ? 'Día' : 'Noche');
+        $clima_simple = $this->simplificarClima($contextoActual['clima_actual'] ?? '');
 
         return response()->json([
             'simulacion_contexto' => [
@@ -584,8 +634,9 @@ class EmbeddingController extends Controller
 
         // Consultar la base de datos para obtener los detalles de todos los destinos en una sola consulta
         $destinosDetalles = Destino::whereIn('id_destino', $destinoIds)
-            ->select('id_destino', 'nombre_destino', 'categoria', 'subcategoria', 'latitud', 'longitud',       'descripcion_corta', // Campo requerido para B2.3.2
-        'foto_principal_url',)
+            ->select('id_destino', 'nombre_destino', 'categoria', 'subcategoria', 'latitud', 'longitud', 
+            'descripcion_corta', // Campo requerido para B2.3.2
+            'foto_principal_url',)
             ->get()
             ->keyBy('id_destino'); // Usamos keyBy para un acceso O(1) rápido
 

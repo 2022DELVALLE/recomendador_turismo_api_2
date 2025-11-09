@@ -15,6 +15,7 @@ use App\Http\Controllers\RelacionDEController;
 use App\Http\Controllers\RelacionCDController;
 use App\Http\Controllers\PrediccionRatingController;
 use App\Http\Controllers\ReseñaTextoController;
+use App\Http\Controllers\RecomendacionFeedbackController;
 
 // Rutas API para la gestión de Usuarios (Nodo U)
 // GET /api/usuarios           -> index
@@ -106,3 +107,14 @@ Route::get('/test/context-filter', [EmbeddingController::class, 'testContextFilt
 // Rutas REST completas para la gestión de Embeddings
 Route::apiResource('embeddings', EmbeddingController::class)->except(['update']);
 Route::get('embeddings/reference', [EmbeddingController::class, 'getByReference']);
+
+
+Route::get('explorar', [DestinoController::class, 'explorarDestinos']);
+
+
+
+
+
+// Ruta para la Tarea B2.5.1: Registro de visualizaciones y ajuste de embedding
+// URL: POST /api/usuario/{user_id}/interaccion_visualizacion
+Route::post('usuario/{user_id}/interaccion_visualizacion', [RecomendacionFeedbackController::class, 'registrarVisualizacion']);

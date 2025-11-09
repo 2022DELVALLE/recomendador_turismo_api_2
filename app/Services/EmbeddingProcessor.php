@@ -6,6 +6,7 @@ use App\Models\Embedding;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use App\Models\InteraccionUC;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class EmbeddingProcessor
 {
@@ -13,13 +14,102 @@ class EmbeddingProcessor
     private $RUTA_MINICONDA_BASE = 'C:\Users\KENYO\miniconda3';
     private $RUTA_SCRIPT_PYTHON = 'C:\laragon\www\prueba_devue\recomendador_turismo_api\scripts\generar_embedding.py';
 
+
+    // Tasa de aprendizaje/ajuste (Alpha) para el ajuste online U0 -> U1
+    // Un valor de 0.15 significa que la nueva interacción contribuye un 15% al nuevo vector.
+    private const ALPHA = 0.15;
+
+    /**
+     * B2.5.3: Ajusta el embedding del usuario (U0) basado en los destinos visualizados (D_i).
+     * Implementa la fórmula: U1 = (1 - alpha) * U0 + alpha * D_promedio
+     *
+     * @param int $user_id ID del usuario a actualizar.
+     * @param array $destino_ids IDs de los destinos visualizados.
+     * @return bool True si la actualización fue exitosa, False en caso de error.
+     */
+    public function ajustarEmbeddingPorVisualizacion(int $user_id, array $destino_ids): bool
+    {
+        try {
+            // 1. Obtener U0: Embedding actual del usuario (tipo_nodo = 'U')
+            $embeddingUsuario = Embedding::where('tipo_nodo', 'U')
+                ->where('id_referencia', $user_id)
+                ->firstOrFail(); // Lanza error si no existe
+
+            $U0 = json_decode($embeddingUsuario->vector_embedding, true);
+            $dimension = count($U0);
+
+            // 2. Obtener D_visualizados: Embeddings de los destinos (tipo_nodo = 'P')
+            $embeddingsDestinos = Embedding::where('tipo_nodo', 'P')
+                ->whereIn('id_referencia', array_unique($destino_ids))
+                ->get();
+
+            if ($embeddingsDestinos->isEmpty()) {
+                Log::warning("No se encontraron embeddings de Destino ('P') para los IDs proporcionados. El embedding del usuario U0 no se ajusta.");
+                return true; // Se considera exitoso, pero sin ajuste
+            }
+
+            // 3. Calcular el Vector de Preferencia Promedio (D_promedio)
+            $D_sum = array_fill(0, $dimension, 0.0);
+            $D_count = 0;
+
+            foreach ($embeddingsDestinos as $destino) {
+                $Di = json_decode($destino->vector_embedding, true);
+
+                if (count($Di) !== $dimension) {
+                    Log::error("Dimensiones de vector inconsistentes entre U y D. Se omite destino: " . $destino->id_referencia);
+                    continue;
+                }
+
+                // Suma de vectores de destinos
+                for ($i = 0; $i < $dimension; $i++) {
+                    $D_sum[$i] += $Di[$i];
+                }
+                $D_count++;
+            }
+
+            if ($D_count === 0) {
+                // Si encontramos embeddings pero no se pudo sumar ninguno (ej. por dimensión inconsistente)
+                return true;
+            }
+
+            // D_promedio = Suma / Cantidad
+            $D_promedio = array_map(function ($sum) use ($D_count) {
+                return $sum / $D_count;
+            }, $D_sum);
+
+
+            // 4. Calcular el Nuevo Vector U1 (Ajuste Ponderado)
+            $U1 = [];
+            $alpha = self::ALPHA;
+
+            for ($i = 0; $i < $dimension; $i++) {
+                // FÓRMULA: U1[i] = (1 - alpha) * U0[i] + alpha * D_promedio[i]
+                $U1[$i] = (1 - $alpha) * $U0[$i] + $alpha * $D_promedio[$i];
+            }
+
+            // 5. Actualizar la Base de Datos con U1
+            $embeddingUsuario->vector_embedding = json_encode($U1);
+            $embeddingUsuario->fecha_generacion = now(); // Actualizar la fecha de última modificación
+            $embeddingUsuario->save();
+
+            Log::info("Embedding de usuario {$user_id} ajustado con éxito. Dims: {$dimension}, Dests: {$D_count}");
+
+            return true;
+        } catch (ModelNotFoundException $e) {
+            Log::error("ERROR: Embedding de usuario {$user_id} (U) no encontrado para ajustar. Mensaje: " . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            Log::error("ERROR inesperado en el cálculo de ajuste vectorial: " . $e->getMessage());
+            return false;
+        }
+    }
     /**
      * Ejecuta el script Python usando archivos temporales para evitar límites de CMD.
      */
     private function ejecutarScriptPython(string $texto_usuario, array $vector_c0_real): ?array
     {
         $tempDir = storage_path('app/temp_embeddings');
-        
+
         // Crear directorio si no existe
         if (!file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
@@ -27,23 +117,23 @@ class EmbeddingProcessor
 
         // Crear archivo temporal único
         $tempFile = $tempDir . '/input_' . uniqid() . '_' . time() . '.json';
-        
+
         try {
             // Escribir datos al archivo temporal
             $inputData = [
                 'texto' => $texto_usuario,
                 'contexto_vector' => $vector_c0_real
             ];
-            
+
             file_put_contents($tempFile, json_encode($inputData, JSON_UNESCAPED_UNICODE));
-            
+
             if (!file_exists($tempFile)) {
                 Log::error("No se pudo crear archivo temporal: {$tempFile}");
                 return null;
             }
 
             $RUTA_PYTHON_ENV = "{$this->RUTA_MINICONDA_BASE}\\envs\\{$this->NOMBRE_ENTORNO}\\python.exe";
-            
+
             // Comando simplificado usando solo la ruta del archivo
             $comando_python = "\"{$RUTA_PYTHON_ENV}\" \"{$this->RUTA_SCRIPT_PYTHON}\" \"{$tempFile}\"";
             $comando = "cmd /C \"{$comando_python}\" 2>&1";
@@ -53,10 +143,10 @@ class EmbeddingProcessor
 
             // Ejecutar comando
             exec($comando, $output, $returnCode);
-            
+
             // Unir salida en string
             $outputString = implode("\n", $output);
-            
+
             Log::info("Código de retorno Python: {$returnCode}");
             Log::info("Salida Python: {$outputString}");
 
@@ -83,7 +173,6 @@ class EmbeddingProcessor
 
             Log::error("Respuesta Python incompleta: " . $outputString);
             return null;
-
         } catch (Exception $e) {
             Log::error("Excepción en ejecutarScriptPython: " . $e->getMessage());
             return null;
@@ -103,7 +192,7 @@ class EmbeddingProcessor
     {
         try {
             Log::info("Iniciando procesamiento embedding para Usuario ID: {$id_usuario}");
-            
+
             // 5.1: Ejecución del Script Python
             $datosEmbedding = $this->ejecutarScriptPython($texto_usuario, $vector_c0_real);
 
@@ -119,7 +208,7 @@ class EmbeddingProcessor
                 'vector_embedding' => $datosEmbedding['U0_vector_json'],
                 'fecha_generacion' => now(),
             ]);
-            
+
             Log::info("Embedding U^0 guardado para Usuario ID: {$id_usuario}");
 
             // 5.3: Guardado de W_UC (UPDATE en Interaccion_Usuario_Contexto)
