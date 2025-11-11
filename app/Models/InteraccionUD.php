@@ -22,6 +22,7 @@ class InteraccionUD extends Model
         'comentario',
         'sentimiento',
         'medio_transporte',
+        'tipo_interaccion', // 💡 NUEVO: Clave para el GNN/Backend
     ];
 
     protected $casts = [

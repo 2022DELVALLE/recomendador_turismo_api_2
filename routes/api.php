@@ -16,6 +16,7 @@ use App\Http\Controllers\RelacionCDController;
 use App\Http\Controllers\PrediccionRatingController;
 use App\Http\Controllers\ReseñaTextoController;
 use App\Http\Controllers\RecomendacionFeedbackController;
+use App\Http\Controllers\RouteController;
 
 // Rutas API para la gestión de Usuarios (Nodo U)
 // GET /api/usuarios           -> index
@@ -118,3 +119,41 @@ Route::get('explorar', [DestinoController::class, 'explorarDestinos']);
 // Ruta para la Tarea B2.5.1: Registro de visualizaciones y ajuste de embedding
 // URL: POST /api/usuario/{user_id}/interaccion_visualizacion
 Route::post('usuario/{user_id}/interaccion_visualizacion', [RecomendacionFeedbackController::class, 'registrarVisualizacion']);
+
+
+// =========================================================================
+// RUTAS DE INTERACCIONES Y FEEDBACK DEL SISTEMA DE RECOMENDACIÓN (B3.3.4)
+// Estas rutas llaman al controlador RecomendacionFeedbackController.
+// =========================================================================
+
+Route::group(['prefix' => 'usuario/{user_id}'], function () {
+
+    // RUTA 1: Registro de Interacciones de Visualización (Implícita)
+    // POST /api/usuario/{user_id}/interaccion_visualizacion
+    // Recibe un array de 'destino_ids'.
+    Route::post('interaccion_visualizacion', [
+        RecomendacionFeedbackController::class,
+        'registrarVisualizacion'
+    ]);
+
+    // RUTA 2: Registro de Interacción Explícita (LIKE, REVIEW, BOOKMARK)
+    // POST /api/usuario/{user_id}/interaccion_explicita
+    // Recibe 'id_destino', 'rating', 'tipo_interaccion'.
+    Route::post('interaccion_explicita', [
+        RecomendacionFeedbackController::class,
+        'registrarInteraccionExplicita'
+    ]);
+});
+
+
+Route::get('destinos/{id_destino}', [DestinoController::class, 'show']);
+
+Route::get('/api/destinos/{id_destino}/reseñas', [DestinoController::class, 'obtenerReseñasPorDestino']);
+
+
+
+// 1. Endpoint para generar y optimizar rutas (B3.4)
+Route::post('/rutas/sugeridas', [RouteController::class, 'getSuggestedRoutes']);
+
+// 2. Endpoint para guardar la ruta seleccionada por el usuario (B3.5)
+Route::post('/rutas/guardar', [RouteController::class, 'saveRoute']);
