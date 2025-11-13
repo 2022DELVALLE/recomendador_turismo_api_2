@@ -51,9 +51,13 @@ class UsuarioController extends Controller
             ]);
 
             // 2. INSERT Usuario (Paso 2)
-            $usuario = Usuario::create(array_merge($request->all(), [
-                'dispositivo_acceso' => $request->header('User-Agent', 'Desconocido'),
-            ]));
+            $data = $request->all();
+            // Nota: Si el frontend NO envia 'dispositivo_acceso', puedes establecer un fallback simple:
+            if (!isset($data['dispositivo_acceso']) || empty($data['dispositivo_acceso'])) {
+                $data['dispositivo_acceso'] = 'No Seleccionado';
+            }
+            $usuario = Usuario::create($data);
+
             $nuevo_id_usuario = $usuario->id_usuario;
 
             // --------------------------------------------------------
