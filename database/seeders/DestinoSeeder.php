@@ -33,7 +33,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'El corazón de Tarma, conocida como la "Perla de los Andes". Destaca por su entorno florido y la arquitectura que la rodea.',
-                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/plaza-armas-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=plaza-armas-tarma',
             ],
             [
                 'nombre_destino' => 'Catedral de Santa Ana de Tarma',
@@ -53,7 +53,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Imponente templo de estilo neoclásico ubicado frente a la plaza. Notable por sus vitrales de artistas locales.',
-                'foto_principal_url' => 'https://www.ytuqueplanes.com/imagenes/fotos/large/catedral-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=catedral-tarma',
             ],
             [
                 'nombre_destino' => 'Museo Regional Manuel A. Odría',
@@ -73,7 +73,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Casa-Museo dedicada al expresidente Manuel A. Odría, exhibiendo su vida, objetos militares y una colección arqueológica regional.',
-                'foto_principal_url' => 'https://cdn.www.gob.pe/uploads/document/file/2798889/Museo%20Regional%20Manuel%20A.%20Odr%C3%ADa.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Museo+Manuel+Odria',
             ],
 
             // --- 2. Atractivos Arqueológicos e Históricos ---
@@ -95,7 +95,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Antiguo centro administrativo Inca en la ruta del Qhapaq Ñan, conocido por sus Qolqas (almacenes) y vistas panorámicas del valle.',
-                'foto_principal_url' => 'https://www.rumbosdelperu.com/wp-content/uploads/2016/09/Tarmatambo_ruinas.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Tarmatambo_ruinas',
             ],
             [
                 'nombre_destino' => 'Ruinas Arqueológicas de Paca',
@@ -115,7 +115,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Restos de una ciudadela Pre-Inca de la cultura Wanka, destacando por sus estructuras de piedra y su posición elevada con grandes vistas.',
-                'foto_principal_url' => 'https://live.staticflickr.com/5176/5425642958_4e0051e249_b.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Paca_ruinas',
             ],
             [
                 'nombre_destino' => 'Capilla del Señor de la Cárcel',
@@ -135,7 +135,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Pequeña capilla conocida por la devoción popular al Señor de la Cárcel, con una rica historia ligada a mitos y la fe local.',
-                'foto_principal_url' => 'https://img.fotocommunity.com/tarma-capilla-senor-de-la-carcel-de7b80a5-f860-4543-9844-3c66f6424b9e.jpg?height=1080',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Capilla_Senor_de_la_Carcel',
             ],
 
             // --- 3. Atractivos Naturales y de Aventura ---
@@ -157,7 +157,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Una de las cavernas más profundas de Sudamérica, famosa por sus formaciones de estalactitas y estalagmitas y por su río subterráneo.',
-                'foto_principal_url' => 'https://storage.googleapis.com/wzrk-peru/huagapo-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Gruta_de_Huagapo',
             ],
             [
                 'nombre_destino' => 'Campiña de Sacsamarca (Valle de las Flores)',
@@ -177,7 +177,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'El corazón floricultor de Tarma. Extensos campos de claveles, gladiolos y otras flores, ideal para fotografía y turismo rural.',
-                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/campina-sacsamarca-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Campiña_de_Sacsamarca',
             ],
             [
                 'nombre_destino' => 'Cachipuquio (Manantiales Salinos - San Pedro de Cajas)',
@@ -197,7 +197,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Manantiales de agua salada a gran altitud, utilizados ancestralmente para el consumo animal y por sus propiedades minerales.',
-                'foto_principal_url' => 'https://i.ytimg.com/vi/D022c4_xL1o/maxresdefault.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Cachipuquio_Manantiales_Salinos',
             ],
             [
                 'nombre_destino' => 'Catarata Pacchacoto (Distrito de San Pedro de Cajas)',
@@ -217,7 +217,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Impresionante caída de agua ubicada cerca del nevado Pacchacoto, con un entorno natural ideal para el trekking y la observación de aves.',
-                'foto_principal_url' => 'https://turismotarma.com/wp-content/uploads/2023/10/catarata-paccha.jpg',
+                'foto_principal_url' => '   https://turismotarma.com/wp-content/uploads/2023/10/catarata-paccha.jpg',
             ],
             [
                 'nombre_destino' => 'Laguna de Cocón (Distrito de Palcamayo)',
@@ -237,7 +237,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Hermosa laguna de origen glaciar rodeada de paisajes altoandinos, ideal para la pesca de truchas y el avistamiento de fauna local.',
-                'foto_principal_url' => 'https://storage.googleapis.com/wzrk-peru/laguna-cocon-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Laguna_de_Cocon',
             ],
 
             // --- 4. Atractivos Religiosos y Productivos ---
@@ -259,7 +259,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Importante lugar de peregrinación donde la imagen del Cristo está plasmada en una roca. Su fiesta en mayo es la más grande de la región.',
-                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/santuario-muruhuay-tarma.jpg',
+                'foto_principal_url' => '   https://viajesyturismo.pe/wp-content/uploads/2021/08/santuario-muruhuay-tarma.jpg',
             ],
             [
                 'nombre_destino' => 'Distrito de San Pedro de Cajas (Cuna del Tapiz)',
@@ -279,7 +279,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Capital reconocida por su tradición textil, donde se elaboran tapices artísticos tridimensionales de lana de alpaca y oveja.',
-                'foto_principal_url' => 'https://cajamarcaopina.com/wp-content/uploads/2021/07/San-Pedro-de-Cajas-tapices.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=San_Pedro_de_Cajas_tapices',
             ],
             [
                 'nombre_destino' => 'Hacienda de Sacsamarca / Ex-Hacienda La Florida',
@@ -299,7 +299,7 @@ class DestinoSeeder extends Seeder
 
                 // NUEVOS CAMPOS AÑADIDOS
                 'descripcion_corta' => 'Antigua casona colonial rodeada de campos de flores, convertida en un atractivo agroturístico con venta de productos lácteos y quesos.',
-                'foto_principal_url' => 'https://viajesyturismo.pe/wp-content/uploads/2021/08/hacienda-la-florida-tarma.jpg',
+                'foto_principal_url' => 'https://placehold.co/1200x800/81C784/ffffff?text=Hacienda_de_Sacsamarca',
             ],
         ]);
     }
